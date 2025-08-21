@@ -1,0 +1,3 @@
+/start to start
+/terminal to enter terminal mode
+/echo to enter echo mode
