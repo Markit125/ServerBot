@@ -29,6 +29,16 @@ func TestExecutionFail(t *testing.T) {
 	assert.Contains(t, terminalAsk, "#")
 }
 
+func TestEmptyInput(t *testing.T) {
+	worker, err := New()
+	require.NoError(t, err)
+
+	result, terminalAsk := worker.Exec(context.Background(), "")
+
+	assert.Contains(t, result, "No command provided")
+	assert.Contains(t, terminalAsk, "#")
+}
+
 func TestChangeDirectory(t *testing.T) {
 	worker, err := New()
 	require.NoError(t, err)

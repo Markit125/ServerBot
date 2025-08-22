@@ -16,7 +16,7 @@ func (sw *ServerWorker) Exec(ctx context.Context, command string) (string, strin
 		programResult += "\n" + err.Error()
 		return programResult, "#"
 	}
-	terminalAsk := path[:len(path)-1] + "#"
+	terminalAsk := path + "#"
 
 	return programResult, terminalAsk
 }
