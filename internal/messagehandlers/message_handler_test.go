@@ -66,7 +66,7 @@ func TestStartHandler(t *testing.T) {
 
 	require.Equal(t, 1, len(messages))
 	assert.Equal(t, int64(125), messages[0].ID())
-	assert.Equal(t, "default handlers description", messages[0].Text())
+	assert.Contains(t, messages[0].Text(), "/start")
 }
 
 func TestSwitchHandlers(t *testing.T) {
@@ -82,8 +82,8 @@ func TestSwitchHandlers(t *testing.T) {
 	messages := bot.SentMessages()
 
 	require.Equal(t, 2, len(messages))
-	assert.Equal(t, messages[0].Text(), "default handlers description")
-	assert.Equal(t, messages[1].Text(), "some text")
+	assert.Contains(t, messages[0].Text(), "/start")
+	assert.Equal(t, "some text", messages[1].Text())
 }
 
 func TestExecuteOnlyOneCommandAtTheSameTime(t *testing.T) {
@@ -96,7 +96,7 @@ func TestExecuteOnlyOneCommandAtTheSameTime(t *testing.T) {
 	handler := &Terminal{}
 
 	ch := make(chan int, 1)
-	for range 2 {
+	for i := 0; i < 2; i++ {
 		go func() {
 			handler.Handle(ctx, bot, update, nil)
 			ch <- 0
@@ -108,5 +108,5 @@ func TestExecuteOnlyOneCommandAtTheSameTime(t *testing.T) {
 	messages := bot.SentMessages()
 
 	assert.Equal(t, 1, len(messages))
-	assert.Equal(t, messages[0].Text(), "Wait for the previous command to complete")
+	assert.Equal(t, "Wait for the previous command to complete", messages[0].Text())
 }

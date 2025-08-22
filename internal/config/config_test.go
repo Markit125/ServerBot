@@ -12,7 +12,7 @@ func TestSuccessfulReadConfig(t *testing.T) {
 	cfg, err := New()
 
 	assert.Nil(t, err)
-	assert.Equal(t, cfg.BotToken, "valid_bot_token")
+	assert.Equal(t, "valid_bot_token", cfg.BotToken)
 }
 
 func TestMissingToken(t *testing.T) {

@@ -40,7 +40,6 @@ func New(cfg *config.Config) (*ServerBot, error) {
 	sb.api = b
 
 	sb.registerHandlers()
-	messagehandlers.ReadHandlersDescriptionText()
 	sb.messageHandler = &messagehandlers.Start{}
 
 	return sb, err

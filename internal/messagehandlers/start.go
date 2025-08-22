@@ -3,6 +3,7 @@ package messagehandlers
 import (
 	"context"
 	"serverbot/internal/serverworker"
+	"serverbot/resources"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -15,4 +16,8 @@ func (t *Start) Handle(ctx context.Context, b ChatBot, update *models.Update, _ 
 		ChatID: update.Message.Chat.ID,
 		Text:   handlersDescriptionText(),
 	})
+}
+
+func handlersDescriptionText() string {
+	return resources.HandlersDescription
 }
