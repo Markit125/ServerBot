@@ -11,7 +11,11 @@ type ServerWorker struct{}
 
 func (sw *ServerWorker) Exec(ctx context.Context, command string) (string, string) {
 	programResult := sw.executeString(ctx, command)
-	path := sw.executeString(ctx, "pwd")
+	path, err := os.Getwd()
+	if err != nil {
+		programResult += "\n" + err.Error()
+		return programResult, "#"
+	}
 	terminalAsk := path[:len(path)-1] + "#"
 
 	return programResult, terminalAsk

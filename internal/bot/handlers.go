@@ -9,7 +9,7 @@ import (
 )
 
 func (sb *ServerBot) echoHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	sb.messageHandler = messagehandlers.Echo{}
+	sb.messageHandler = &messagehandlers.Echo{}
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
 		Text:   "Echo mode enabled",
@@ -17,7 +17,7 @@ func (sb *ServerBot) echoHandler(ctx context.Context, b *bot.Bot, update *models
 }
 
 func (sb *ServerBot) execHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	sb.messageHandler = messagehandlers.Terminal{}
+	sb.messageHandler = &messagehandlers.Terminal{}
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
 		Text:   "Terminal mode enabled",
@@ -33,6 +33,6 @@ func (sb *ServerBot) interruptHandler(ctx context.Context, _ *bot.Bot, _ *models
 }
 
 func (sb *ServerBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	sb.messageHandler = messagehandlers.Start{}
+	sb.messageHandler = &messagehandlers.Start{}
 	sb.messageHandler.Handle(ctx, b, update, sb.serverWorker)
 }

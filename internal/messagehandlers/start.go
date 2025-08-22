@@ -10,7 +10,7 @@ import (
 
 type Start struct{}
 
-func (t Start) Handle(ctx context.Context, b ChatBot, update *models.Update, _ *serverworker.ServerWorker) {
+func (t *Start) Handle(ctx context.Context, b ChatBot, update *models.Update, _ *serverworker.ServerWorker) {
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
 		Text:   handlersDescriptionText(),

@@ -4,6 +4,7 @@ import (
 	"context"
 	botmock "serverbot/internal/botMock"
 	"testing"
+	"time"
 
 	"github.com/go-telegram/bot/models"
 	"github.com/stretchr/testify/assert"
@@ -19,22 +20,16 @@ func TestEchoHandler(t *testing.T) {
 	}{
 		{
 			name: "echo normal message",
-			messageSend: &models.Message{
-				Text: "repeat it",
-				Chat: models.Chat{
-					ID: 125,
-				},
-			},
+			messageSend: NewMessageBuilder().
+				AddChatID(125).
+				AddText("repeat it").Message(),
 			expectedMessage: "repeat it",
 			expectedID:      int64(125),
 		},
 		{
 			name: "echo empty message",
-			messageSend: &models.Message{
-				Chat: models.Chat{
-					ID: 1,
-				},
-			},
+			messageSend: NewMessageBuilder().
+				AddChatID(1).Message(),
 			expectedMessage: "",
 			expectedID:      int64(1),
 		},
@@ -47,9 +42,7 @@ func TestEchoHandler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			defer bot.ClearMessageHistory()
 
-			echoHandler.Handle(context.Background(), bot, &models.Update{
-				Message: test.messageSend,
-			}, nil)
+			echoHandler.Handle(context.Background(), bot, NewUpdateWithMessage(test.messageSend), nil)
 
 			messages := bot.SentMessages()
 			require.Equal(t, 1, len(messages))
@@ -63,14 +56,11 @@ func TestStartHandler(t *testing.T) {
 	bot := botmock.New(nil)
 	startHandler := Start{}
 
-	startHandler.Handle(context.Background(), bot, &models.Update{
-		Message: &models.Message{
-			Text: "any",
-			Chat: models.Chat{
-				ID: 125,
-			},
-		},
-	}, nil)
+	startHandler.Handle(context.Background(), bot, NewUpdateWithMessage(
+		NewMessageBuilder().
+			AddChatID(125).
+			AddText("any").Message()),
+		nil)
 
 	messages := bot.SentMessages()
 
@@ -81,16 +71,12 @@ func TestStartHandler(t *testing.T) {
 
 func TestSwitchHandlers(t *testing.T) {
 	bot := botmock.New(nil)
-	update := &models.Update{
-		Message: &models.Message{
-			Text: "some text",
-		},
-	}
+	update := NewUpdateWithMessage(NewMessageBuilder().AddText("some text").Message())
 
 	var handler MessageHandler
-	handler = Start{}
+	handler = &Start{}
 	handler.Handle(context.Background(), bot, update, nil)
-	handler = Echo{}
+	handler = &Echo{}
 	handler.Handle(context.Background(), bot, update, nil)
 
 	messages := bot.SentMessages()
@@ -98,5 +84,29 @@ func TestSwitchHandlers(t *testing.T) {
 	require.Equal(t, 2, len(messages))
 	assert.Equal(t, messages[0].Text(), "default handlers description")
 	assert.Equal(t, messages[1].Text(), "some text")
+}
 
+func TestExecuteOnlyOneCommandAtTheSameTime(t *testing.T) {
+	bot := botmock.New(nil)
+	update := NewUpdateWithMessage(NewMessageBuilder().AddText("sleep 15").Message())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	handler := &Terminal{}
+
+	ch := make(chan int, 1)
+	for range 2 {
+		go func() {
+			handler.Handle(ctx, bot, update, nil)
+			ch <- 0
+		}()
+	}
+
+	<-ch
+
+	messages := bot.SentMessages()
+
+	assert.Equal(t, 1, len(messages))
+	assert.Equal(t, messages[0].Text(), "Wait for the previous command to complete")
 }
