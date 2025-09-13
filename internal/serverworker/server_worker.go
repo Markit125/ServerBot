@@ -1,7 +1,9 @@
 package serverworker
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"strings"
@@ -26,49 +28,70 @@ func New() (*ServerWorker, error) {
 }
 
 func (se *ServerWorker) executeString(ctx context.Context, argsStr string) string {
-	args := strings.Fields(argsStr)
-	if len(args) < 1 {
-		return "No command provided"
+	out := &bytes.Buffer{}
+	commands := strings.Split(argsStr, "|")
+	err := se.executeStringCommand(ctx, commands, out)
+	if err != nil {
+		return err.Error()
+	}
+
+	return out.String()
+}
+
+func (se *ServerWorker) executeStringCommand(ctx context.Context, commands []string, buffer *bytes.Buffer) error {
+	if len(commands) == 0 {
+		return nil
+	}
+
+	args := strings.Fields(commands[len(commands)-1])
+	if len(args) == 0 {
+		return errors.New("no command provided")
 	}
 
 	command := args[0]
 	args = args[1:]
 
-	return se.execute(ctx, command, args)
+	return se.execute(ctx, command, args, commands[:len(commands)-1], buffer)
 }
 
-func (se *ServerWorker) execute(ctx context.Context, command string, args []string) string {
+func (se *ServerWorker) execute(ctx context.Context, command string, args []string, commands []string, buffer *bytes.Buffer) error {
 	if command == "cd" {
 		return se.changeDirectory(args)
 	}
 
-	return se.executeCommand(ctx, command, args)
+	return se.executeCommand(ctx, command, args, commands, buffer)
 }
 
-func (se *ServerWorker) executeCommand(ctx context.Context, command string, args []string) string {
-	cmd := exec.CommandContext(ctx, command, args...)
-	stdout, err := cmd.Output()
+func (se *ServerWorker) executeCommand(ctx context.Context, command string, args []string, commands []string, buffer *bytes.Buffer) error {
+	err := se.executeStringCommand(ctx, commands, buffer)
 	if err != nil {
-		return err.Error()
+		return err
 	}
 
-	return string(stdout)
+	cmd := exec.CommandContext(ctx, command, args...)
+	cmd.Stdout = buffer
+	cmd.Stdin = buffer
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (se *ServerWorker) changeDirectory(args []string) string {
+func (se *ServerWorker) changeDirectory(args []string) error {
 	if len(args) < 1 {
-		return "Not enough arguments for command 'cd'"
+		return errors.New("not enough arguments for command 'cd'")
 	}
 
 	err := os.Chdir(args[0])
 	if err != nil {
-		return err.Error()
+		return err
 	}
 
-	path, err := os.Getwd()
-	if err != nil {
-		return err.Error()
-	}
-
-	return path
+	return nil
 }

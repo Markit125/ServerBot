@@ -50,3 +50,17 @@ func TestChangeDirectory(t *testing.T) {
 
 	assert.Equal(t, currentPath, newCurrentPath)
 }
+
+func TestPipeline(t *testing.T) {
+	worker, err := New()
+	require.NoError(t, err)
+
+	command := `echo "abcde
+	12345
+	1a2b3c"
+	| grep 1 | grep a`
+
+	result, _ := worker.Exec(context.Background(), command)
+
+	assert.Equal(t, "1a2b3c", result)
+}

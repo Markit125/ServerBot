@@ -20,7 +20,7 @@ func (t *Terminal) Handle(ctx context.Context, b ChatBot, update *models.Update,
 			ChatID: update.Message.Chat.ID,
 			Text:   "Wait for the previous command to complete",
 		})
-		
+
 		return
 	}
 
