@@ -23,6 +23,16 @@ func main() {
 		panic(err)
 	}
 
+	home, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.Chdir(home)
+	if err != nil {
+		panic(err)
+	}
+
 	fmt.Println("Bot successfully initiated")
 	sb.Start(ctx)
 }
