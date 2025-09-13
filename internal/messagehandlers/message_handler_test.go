@@ -2,7 +2,7 @@ package messagehandlers
 
 import (
 	"context"
-	botmock "serverbot/internal/botMock"
+	"serverbot/internal/botmock"
 	"testing"
 	"time"
 
