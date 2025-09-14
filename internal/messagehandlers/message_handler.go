@@ -10,6 +10,8 @@ import (
 
 type ChatBot interface {
 	SendMessage(ctx context.Context, params *bot.SendMessageParams) (*models.Message, error)
+	GetFile(ctx context.Context, params *bot.GetFileParams) (*models.File, error)
+	FileDownloadLink(f *models.File) string
 }
 
 type MessageHandler interface {

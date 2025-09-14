@@ -49,7 +49,7 @@ func (sb *ServerBot) registerHandlers() {
 	sb.api.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, sb.startHandler)
 	sb.api.RegisterHandler(bot.HandlerTypeMessageText, "/echo", bot.MatchTypePrefix, sb.echoHandler)
 	sb.api.RegisterHandler(bot.HandlerTypeMessageText, "/terminal", bot.MatchTypeExact, sb.execHandler)
-	sb.api.RegisterHandler(bot.HandlerTypeMessageText, messagehandlers.INTERRUPT, bot.MatchTypeExact, sb.interruptHandler)
+	sb.api.RegisterHandler(bot.HandlerTypeMessageText, "/upload", bot.MatchTypeExact, sb.uploadHandler)
 }
 
 func (sb *ServerBot) Start(ctx context.Context) {

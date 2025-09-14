@@ -8,6 +8,10 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
+func (sb *ServerBot) inputHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	sb.messageHandler.Handle(ctx, b, update, sb.serverWorker)
+}
+
 func (sb *ServerBot) echoHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	sb.messageHandler = &messagehandlers.Echo{}
 	b.SendMessage(ctx, &bot.SendMessageParams{
@@ -24,15 +28,19 @@ func (sb *ServerBot) execHandler(ctx context.Context, b *bot.Bot, update *models
 	})
 }
 
-func (sb *ServerBot) inputHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	sb.messageHandler.Handle(ctx, b, update, sb.serverWorker)
-}
-
-func (sb *ServerBot) interruptHandler(ctx context.Context, _ *bot.Bot, _ *models.Update) {
-
+func (sb *ServerBot) interruptHandler(_ context.Context, _ *bot.Bot, _ *models.Update) {
+	panic("Not implemented")
 }
 
 func (sb *ServerBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	sb.messageHandler = &messagehandlers.Start{}
 	sb.messageHandler.Handle(ctx, b, update, sb.serverWorker)
+}
+
+func (sb *ServerBot) uploadHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	sb.messageHandler = &messagehandlers.Upload{}
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: update.Message.Chat.ID,
+		Text:   "Attach file to upload",
+	})
 }
