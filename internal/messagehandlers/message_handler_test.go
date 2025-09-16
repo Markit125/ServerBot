@@ -2,6 +2,8 @@ package messagehandlers
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"serverbot/internal/botmock"
 	"testing"
 	"time"
@@ -109,4 +111,26 @@ func TestExecuteOnlyOneCommandAtTheSameTime(t *testing.T) {
 
 	assert.Equal(t, 1, len(messages))
 	assert.Equal(t, "Wait for the previous command to complete", messages[0].Text())
+}
+
+func TestUploadFile(t *testing.T) {
+	_, err := os.Create("testfile")
+	require.NoError(t, err)
+	defer os.Remove("testfile")
+
+	bot := botmock.New(nil)
+	handler := &Terminal{}
+
+	currentPath, err := os.Getwd()
+	require.NoError(t, err)
+
+	update := NewUpdateWithMessage(NewMessageBuilder().AddDocument(&models.Document{
+		FileID:   filepath.Join(currentPath, "testfile"),
+		FileName: "testfile_name",
+	}).Message())
+
+	handler.Handle(context.Background(), bot, update, nil)
+	defer os.Remove("testfile_name")
+
+	assert.FileExists(t, filepath.Join(currentPath, "testfile_name"))
 }

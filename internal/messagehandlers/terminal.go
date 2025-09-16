@@ -15,6 +15,12 @@ type Terminal struct {
 const INTERRUPT = "/c"
 
 func (t *Terminal) Handle(ctx context.Context, b ChatBot, update *models.Update, serverWorker *serverworker.ServerWorker) {
+	if update.Message.Audio != nil || update.Message.Document != nil || update.Message.Video != nil {
+		handler := &Upload{}
+		handler.Handle(ctx, b, update, serverWorker)
+		return
+	}
+
 	if t.commandExecuting {
 		b.SendMessage(ctx, &bot.SendMessageParams{
 			ChatID: update.Message.Chat.ID,

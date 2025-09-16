@@ -36,11 +36,3 @@ func (sb *ServerBot) startHandler(ctx context.Context, b *bot.Bot, update *model
 	sb.messageHandler = &messagehandlers.Start{}
 	sb.messageHandler.Handle(ctx, b, update, sb.serverWorker)
 }
-
-func (sb *ServerBot) uploadHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
-	sb.messageHandler = &messagehandlers.Upload{}
-	b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID: update.Message.Chat.ID,
-		Text:   "Attach file to upload",
-	})
-}

@@ -23,7 +23,9 @@ func (bm *botMock) SendMessage(ctx context.Context, params *bot.SendMessageParam
 }
 
 func (bm *botMock) GetFile(ctx context.Context, params *bot.GetFileParams) (*models.File, error) {
-	panic("Not implemented")
+	return &models.File{
+		FilePath: params.FileID,
+	}, nil
 }
 
 func (b *botMock) FileDownloadLink(f *models.File) string {

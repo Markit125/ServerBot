@@ -41,6 +41,11 @@ func (mb *messageBuilder) AddText(text string) *messageBuilder {
 	return mb
 }
 
+func (mb *messageBuilder) AddDocument(document *models.Document) *messageBuilder {
+	mb.message.Document = document
+	return mb
+}
+
 func (mb *messageBuilder) Message() *models.Message {
 	return mb.message
 }
