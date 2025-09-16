@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"strings"
@@ -71,13 +72,15 @@ func (se *ServerWorker) executeCommand(ctx context.Context, command string, args
 	cmd := exec.CommandContext(ctx, command, args...)
 	cmd.Stdout = buffer
 	cmd.Stdin = buffer
+	errbuf := &bytes.Buffer{}
+	cmd.Stderr = errbuf
 
 	if err := cmd.Start(); err != nil {
-		return err
+		return fmt.Errorf("%w: %s", err, errbuf.String())
 	}
 
 	if err := cmd.Wait(); err != nil {
-		return err
+		return fmt.Errorf("%w: %s", err, errbuf.String())
 	}
 
 	return nil
