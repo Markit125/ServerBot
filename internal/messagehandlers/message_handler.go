@@ -2,6 +2,7 @@ package messagehandlers
 
 import (
 	"context"
+	"io"
 	"serverbot/internal/serverworker"
 
 	"github.com/go-telegram/bot"
@@ -14,6 +15,16 @@ type ChatBot interface {
 
 type MessageHandler interface {
 	Handle(context.Context, ChatBot, *models.Update, *serverworker.ServerWorker)
+}
+
+type UploadedDocument struct {
+	FileName  string
+	LocalPath string
+	Content   io.Reader
+}
+
+type DocumentHandler interface {
+	HandleDocument(context.Context, ChatBot, *models.Update, *serverworker.ServerWorker, *UploadedDocument)
 }
 
 type messageBuilder struct {

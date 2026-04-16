@@ -8,7 +8,8 @@ import (
 )
 
 type Config struct {
-	BotToken string
+	BotToken  string
+	BotAPIURL string
 }
 
 func New() (*Config, error) {
@@ -20,6 +21,7 @@ func New() (*Config, error) {
 	}
 
 	return &Config{
-		BotToken: token,
+		BotToken:  token,
+		BotAPIURL: os.Getenv("BOT_API_URL"),
 	}, nil
 }
