@@ -1,4 +1,5 @@
 /start to start
 /terminal to enter terminal mode
+/sigterm to terminate the currently running terminal command
 /echo to enter echo mode
 /get to choose and download a file or directory from the current folder; directories are sent as Name.zip

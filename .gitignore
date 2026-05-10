@@ -28,6 +28,7 @@ config.toml
 # local runtime artifacts
 bin/
 logs/
+TODO.md
 
 # systemd service file
 deploy/serverbot.service

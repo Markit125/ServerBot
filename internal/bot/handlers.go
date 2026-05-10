@@ -302,8 +302,34 @@ func (sb *ServerBot) documentHandler(ctx context.Context, b *bot.Bot, update *mo
 	})
 }
 
-func (sb *ServerBot) interruptHandler(ctx context.Context, _ *bot.Bot, _ *models.Update) {
+func (sb *ServerBot) signalTerminateHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+	chatID, ok := chatIDFromUpdate(update)
+	if !ok {
+		log.Printf("warning: cannot terminate command: update has no chat")
+		return
+	}
 
+	terminal, ok := sb.messageHandler.(*messagehandlers.Terminal)
+	if !ok {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   "Terminal mode is not active",
+		})
+		return
+	}
+
+	if !terminal.RequestTerminate() {
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   "No running command to terminate",
+		})
+		return
+	}
+
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: chatID,
+		Text:   "SIGTERM sent to the running command",
+	})
 }
 
 func (sb *ServerBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {

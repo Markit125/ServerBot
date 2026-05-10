@@ -11,6 +11,8 @@ import (
 
 type ChatBot interface {
 	SendMessage(ctx context.Context, params *bot.SendMessageParams) (*models.Message, error)
+	EditMessageText(ctx context.Context, params *bot.EditMessageTextParams) (*models.Message, error)
+	DeleteMessage(ctx context.Context, params *bot.DeleteMessageParams) (bool, error)
 }
 
 type MessageHandler interface {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -109,6 +110,21 @@ func TestPipeline(t *testing.T) {
 	result, _ := worker.Exec(context.Background(), command)
 
 	assert.Equal(t, "1a2b3c", result)
+}
+
+func TestExecTerminatesCancelledCommand(t *testing.T) {
+	worker, err := New()
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	startedAt := time.Now()
+	result, terminalAsk := worker.Exec(ctx, "sleep 30")
+
+	assert.Less(t, time.Since(startedAt), processTerminateGrace+time.Second)
+	assert.Contains(t, result, "command terminated")
+	assert.Contains(t, terminalAsk, "#")
 }
 
 func TestSaveUploadedFileAddsDuplicateSuffix(t *testing.T) {

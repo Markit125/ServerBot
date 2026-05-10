@@ -150,6 +150,47 @@ func TestTerminalHandler(t *testing.T) {
 	assert.Contains(t, messages[1].Text(), tempDir)
 }
 
+func TestTerminalCanTerminateRunningCommand(t *testing.T) {
+	worker, err := serverworker.New()
+	require.NoError(t, err)
+
+	bot := botmock.New(nil)
+	update := NewUpdateWithMessage(
+		NewMessageBuilder().
+			AddChatID(125).
+			AddText("sleep 30").Message(),
+	)
+
+	handler := &Terminal{}
+	done := make(chan struct{})
+	go func() {
+		handler.Handle(context.Background(), bot, update, worker)
+		close(done)
+	}()
+
+	require.Eventually(t, func() bool {
+		return handler.RequestTerminate()
+	}, time.Second, 10*time.Millisecond)
+
+	select {
+	case <-done:
+	case <-time.After(3 * time.Second):
+		t.Fatal("command did not terminate")
+	}
+
+	messages := bot.SentMessages()
+	require.Len(t, messages, 2)
+	assert.Contains(t, messages[0].Text(), "command terminated")
+	assert.Contains(t, messages[1].Text(), "#")
+}
+
+func TestFormatExecutingElapsed(t *testing.T) {
+	assert.Equal(t, "1s", formatExecutingElapsed(200*time.Millisecond))
+	assert.Equal(t, "1s", formatExecutingElapsed(time.Second))
+	assert.Equal(t, "1m 12s", formatExecutingElapsed(72*time.Second))
+	assert.Equal(t, "1h 02m 03s", formatExecutingElapsed(3723*time.Second))
+}
+
 func TestTerminalDocumentHandler(t *testing.T) {
 	worker, err := serverworker.New()
 	require.NoError(t, err)

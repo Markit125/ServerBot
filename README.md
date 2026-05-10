@@ -6,6 +6,8 @@ Current features:
 
 *   `/terminal`: Run shell commands in the bot working directory.
     
+*   `/sigterm`: Terminate the currently running terminal command.
+    
 *   File Uploads: Send any file to the bot, and it will be saved directly to the server's current working directory.
     
 *   `/get`: Choose a file or directory from the current working directory and receive it in Telegram.
@@ -177,6 +179,7 @@ Commands can be added through `@BotFather`:
 ```
 start - Start bot
 terminal - Terminal mode
+sigterm - Terminate running terminal command
 get - Download file or directory
 echo - Echo mode
 ```

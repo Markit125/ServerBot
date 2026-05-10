@@ -72,7 +72,7 @@ func (sb *ServerBot) registerHandlers() {
 	sb.api.RegisterHandler(bot.HandlerTypeMessageText, "/echo", bot.MatchTypePrefix, sb.echoHandler)
 	sb.api.RegisterHandler(bot.HandlerTypeMessageText, "/terminal", bot.MatchTypeExact, sb.terminalHandler)
 	sb.api.RegisterHandler(bot.HandlerTypeMessageText, "/get", bot.MatchTypeExact, sb.getHandler)
-	sb.api.RegisterHandler(bot.HandlerTypeMessageText, messagehandlers.INTERRUPT, bot.MatchTypeExact, sb.interruptHandler)
+	sb.api.RegisterHandler(bot.HandlerTypeMessageText, messagehandlers.SignalTerminate, bot.MatchTypeExact, sb.signalTerminateHandler)
 	sb.api.RegisterHandler(bot.HandlerTypeCallbackQueryData, "get:", bot.MatchTypePrefix, sb.getSelectionHandler)
 	sb.api.RegisterHandlerMatchFunc(func(update *models.Update) bool {
 		return extractUploadedFile(update.Message) != nil

@@ -13,9 +13,12 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
+	"time"
 )
 
 const defaultMaxDownloadBytes int64 = 2 * 1024 * 1024 * 1024
+const processTerminateGrace = 2 * time.Second
 
 type ServerWorker struct {
 	options Options
@@ -263,7 +266,8 @@ func (se *ServerWorker) executeScript(ctx context.Context, command string) (stri
 		return "", err
 	}
 
-	cmd := exec.CommandContext(ctx, bashPath, scriptPath)
+	cmd := exec.Command(bashPath, scriptPath)
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	workingDir, err := os.Getwd()
 	if err != nil {
@@ -275,11 +279,49 @@ func (se *ServerWorker) executeScript(ctx context.Context, command string) (stri
 	cmd.Stdout = out
 	cmd.Stderr = out
 
-	if err := cmd.Run(); err != nil {
+	if err := se.runCommand(ctx, cmd); err != nil {
 		return se.sanitizeScriptOutput(out.String(), scriptPath), err
 	}
 
 	return se.sanitizeScriptOutput(out.String(), scriptPath), nil
+}
+
+func (se *ServerWorker) runCommand(ctx context.Context, cmd *exec.Cmd) error {
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+
+	select {
+	case err := <-done:
+		return err
+	case <-ctx.Done():
+		se.terminateProcessGroup(cmd.Process.Pid, done)
+		return errors.New("command terminated")
+	}
+}
+
+func (se *ServerWorker) terminateProcessGroup(pid int, done <-chan error) {
+	if pid <= 0 {
+		return
+	}
+
+	_ = syscall.Kill(-pid, syscall.SIGTERM)
+
+	timer := time.NewTimer(processTerminateGrace)
+	defer timer.Stop()
+
+	select {
+	case <-done:
+		return
+	case <-timer.C:
+		_ = syscall.Kill(-pid, syscall.SIGKILL)
+		<-done
+	}
 }
 
 func (se *ServerWorker) findBashPath() (string, error) {
