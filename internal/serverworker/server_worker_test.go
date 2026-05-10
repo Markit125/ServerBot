@@ -1,6 +1,7 @@
 package serverworker
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"os"
@@ -203,4 +204,153 @@ func TestExecCleansTemporaryScript(t *testing.T) {
 	matches, err := filepath.Glob(filepath.Join(tempDir, "exec-*"))
 	require.NoError(t, err)
 	assert.Empty(t, matches)
+}
+
+func TestListCurrentDirReturnsDirectoriesFirst(t *testing.T) {
+	worker, err := New()
+	require.NoError(t, err)
+
+	tempDir := t.TempDir()
+	currentDir, err := os.Getwd()
+	require.NoError(t, err)
+
+	require.NoError(t, os.Chdir(tempDir))
+	t.Cleanup(func() {
+		_ = os.Chdir(currentDir)
+	})
+
+	require.NoError(t, os.Mkdir("beta", 0o755))
+	require.NoError(t, os.Mkdir("Alpha", 0o755))
+	require.NoError(t, os.WriteFile("zeta.txt", []byte("z"), 0o600))
+	require.NoError(t, os.WriteFile("beta.txt", []byte("b"), 0o600))
+
+	entries, err := worker.ListCurrentDir()
+	require.NoError(t, err)
+
+	assert.Equal(t, []DownloadableEntry{
+		{Name: "Alpha", IsDir: true},
+		{Name: "beta", IsDir: true},
+		{Name: "beta.txt", IsDir: false},
+		{Name: "zeta.txt", IsDir: false},
+	}, entries)
+}
+
+func TestPrepareDownloadReturnsFileAsIs(t *testing.T) {
+	worker, err := New()
+	require.NoError(t, err)
+
+	tempDir := t.TempDir()
+	currentDir, err := os.Getwd()
+	require.NoError(t, err)
+
+	require.NoError(t, os.Chdir(tempDir))
+	t.Cleanup(func() {
+		_ = os.Chdir(currentDir)
+	})
+
+	filePath := filepath.Join(tempDir, "report.txt")
+	require.NoError(t, os.WriteFile(filePath, []byte("payload"), 0o600))
+
+	preparedDownload, err := worker.PrepareDownload("report.txt")
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = preparedDownload.Cleanup()
+	})
+
+	assert.Equal(t, "report.txt", preparedDownload.FileName)
+	assert.Equal(t, filePath, preparedDownload.Path)
+}
+
+func TestPrepareDownloadArchivesDirectory(t *testing.T) {
+	worker, err := New()
+	require.NoError(t, err)
+
+	tempDir := t.TempDir()
+	currentDir, err := os.Getwd()
+	require.NoError(t, err)
+
+	require.NoError(t, os.Chdir(tempDir))
+	t.Cleanup(func() {
+		_ = os.Chdir(currentDir)
+	})
+
+	require.NoError(t, os.MkdirAll(filepath.Join("logs", "nested"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join("logs", "app.log"), []byte("line-1"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join("logs", "nested", "trace.txt"), []byte("trace"), 0o600))
+
+	preparedDownload, err := worker.PrepareDownload("logs")
+	require.NoError(t, err)
+
+	assert.Equal(t, "logs.zip", preparedDownload.FileName)
+	assert.Equal(t, "logs.zip", filepath.Base(preparedDownload.Path))
+
+	archiveReader, err := zip.OpenReader(preparedDownload.Path)
+	require.NoError(t, err)
+	defer archiveReader.Close()
+
+	archiveEntries := make([]string, 0, len(archiveReader.File))
+	for _, file := range archiveReader.File {
+		archiveEntries = append(archiveEntries, file.Name)
+	}
+
+	assert.Contains(t, archiveEntries, "logs/app.log")
+	assert.Contains(t, archiveEntries, "logs/nested/")
+	assert.Contains(t, archiveEntries, "logs/nested/trace.txt")
+
+	require.NoError(t, preparedDownload.Cleanup())
+	_, err = os.Stat(preparedDownload.Path)
+	assert.ErrorIs(t, err, os.ErrNotExist)
+}
+
+func TestPrepareDownloadRejectsTraversal(t *testing.T) {
+	worker, err := New()
+	require.NoError(t, err)
+
+	_, err = worker.PrepareDownload("../secret.txt")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid file or directory name")
+}
+
+func TestPrepareDownloadRejectsFileAboveLimit(t *testing.T) {
+	worker, err := NewWithOptions(Options{MaxDownloadBytes: 4})
+	require.NoError(t, err)
+
+	tempDir := t.TempDir()
+	currentDir, err := os.Getwd()
+	require.NoError(t, err)
+
+	require.NoError(t, os.Chdir(tempDir))
+	t.Cleanup(func() {
+		_ = os.Chdir(currentDir)
+	})
+
+	require.NoError(t, os.WriteFile("large.txt", []byte("payload"), 0o600))
+
+	_, err = worker.PrepareDownload("large.txt")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "too large")
+	assert.Contains(t, err.Error(), "exceeds limit")
+}
+
+func TestPrepareDownloadRejectsDirectoryAboveLimit(t *testing.T) {
+	worker, err := NewWithOptions(Options{MaxDownloadBytes: 8})
+	require.NoError(t, err)
+
+	tempDir := t.TempDir()
+	currentDir, err := os.Getwd()
+	require.NoError(t, err)
+
+	require.NoError(t, os.Chdir(tempDir))
+	t.Cleanup(func() {
+		_ = os.Chdir(currentDir)
+	})
+
+	require.NoError(t, os.Mkdir("logs", 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join("logs", "a.log"), []byte("12345"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join("logs", "b.log"), []byte("67890"), 0o600))
+
+	_, err = worker.PrepareDownload("logs")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "too large")
+	assert.Contains(t, err.Error(), "exceeds limit")
 }

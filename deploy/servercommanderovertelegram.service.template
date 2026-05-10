@@ -1,0 +1,26 @@
+[Unit]
+Description=ServerCommanderOverTelegram Telegram bot
+After=network-online.target {{LOCAL_BOT_API_SERVICE}}
+Wants=network-online.target {{LOCAL_BOT_API_SERVICE}}
+
+[Service]
+Type=simple
+User={{SERVICE_USER}}
+WorkingDirectory={{ROOT_DIR}}
+EnvironmentFile={{ENV_FILE}}
+ExecStart={{ROOT_DIR}}/scripts/run-servercommanderovertelegram.sh
+Restart=always
+RestartSec=5
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+CPUAccounting=true
+CPUQuota=60%
+MemoryAccounting=true
+MemoryHigh=768M
+MemoryMax=1G
+TasksMax=64
+OOMScoreAdjust=500
+
+[Install]
+WantedBy=multi-user.target

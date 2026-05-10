@@ -1,6 +1,7 @@
 package serverworker
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"errors"
@@ -10,10 +11,46 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
-type ServerWorker struct{}
+const defaultMaxDownloadBytes int64 = 2 * 1024 * 1024 * 1024
+
+type ServerWorker struct {
+	options Options
+}
+
+type Options struct {
+	MaxDownloadBytes    int64
+	ProgressBytesStep   int64
+	TempDir             string
+	ExecTempPattern     string
+	DownloadTempPattern string
+}
+
+type DownloadableEntry struct {
+	Name  string
+	IsDir bool
+}
+
+type PreparedDownload struct {
+	FileName string
+	Path     string
+	Size     int64
+	Cleanup  func() error
+}
+
+type DownloadProgress struct {
+	Stage      string
+	Name       string
+	Path       string
+	Files      int64
+	Bytes      int64
+	TotalBytes int64
+}
+
+type DownloadProgressFunc func(DownloadProgress)
 
 func (sw *ServerWorker) Exec(ctx context.Context, command string) (string, string) {
 	programResult, err := sw.execute(ctx, command)
@@ -78,6 +115,90 @@ func (sw *ServerWorker) SaveTelegramLocalFile(sourcePath string, targetFileName 
 	return sw.SaveUploadedFile(targetFileName, sourceFile)
 }
 
+func (sw *ServerWorker) ListCurrentDir() ([]DownloadableEntry, error) {
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]DownloadableEntry, 0, len(entries))
+	for _, entry := range entries {
+		items = append(items, DownloadableEntry{
+			Name:  entry.Name(),
+			IsDir: entry.IsDir(),
+		})
+	}
+
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].IsDir != items[j].IsDir {
+			return items[i].IsDir
+		}
+		return strings.ToLower(items[i].Name) < strings.ToLower(items[j].Name)
+	})
+
+	return items, nil
+}
+
+func (sw *ServerWorker) PrepareDownload(name string) (*PreparedDownload, error) {
+	return sw.PrepareDownloadWithProgress(name, nil)
+}
+
+func (sw *ServerWorker) PrepareDownloadWithProgress(name string, progress DownloadProgressFunc) (*PreparedDownload, error) {
+	emitDownloadProgress(progress, DownloadProgress{Stage: "resolve_started", Name: name})
+
+	resolvedPath, err := sw.resolveDownloadPath(name)
+	if err != nil {
+		emitDownloadProgress(progress, DownloadProgress{Stage: "resolve_failed", Name: name})
+		return nil, err
+	}
+	emitDownloadProgress(progress, DownloadProgress{Stage: "resolve_done", Name: name, Path: resolvedPath})
+
+	fileInfo, err := os.Stat(resolvedPath)
+	if err != nil {
+		return nil, err
+	}
+
+	totalBytes, files, err := sw.validateDownloadSize(resolvedPath, progress)
+	if err != nil {
+		return nil, err
+	}
+	emitDownloadProgress(progress, DownloadProgress{Stage: "size_check_done", Name: fileInfo.Name(), Path: resolvedPath, Files: files, TotalBytes: totalBytes})
+
+	if !fileInfo.IsDir() {
+		emitDownloadProgress(progress, DownloadProgress{Stage: "file_ready", Name: fileInfo.Name(), Path: resolvedPath, Files: files, TotalBytes: totalBytes})
+		return &PreparedDownload{
+			FileName: fileInfo.Name(),
+			Path:     resolvedPath,
+			Size:     totalBytes,
+			Cleanup:  func() error { return nil },
+		}, nil
+	}
+
+	archivePath, cleanupArchive, err := sw.archiveDirectory(resolvedPath, fileInfo.Name(), totalBytes, progress)
+	if err != nil {
+		return nil, err
+	}
+	archiveInfo, err := os.Stat(archivePath)
+	if err != nil {
+		_ = cleanupArchive()
+		return nil, err
+	}
+	emitDownloadProgress(progress, DownloadProgress{Stage: "archive_ready", Name: fileInfo.Name() + ".zip", Path: archivePath, Files: files, Bytes: archiveInfo.Size(), TotalBytes: totalBytes})
+
+	return &PreparedDownload{
+		FileName: fileInfo.Name() + ".zip",
+		Path:     archivePath,
+		Size:     archiveInfo.Size(),
+		Cleanup:  cleanupArchive,
+	}, nil
+}
+
+func emitDownloadProgress(progress DownloadProgressFunc, event DownloadProgress) {
+	if progress != nil {
+		progress(event)
+	}
+}
+
 func (sw *ServerWorker) resultWithPrompt(programResult string) (string, string) {
 	path, err := os.Getwd()
 	if err != nil {
@@ -90,7 +211,27 @@ func (sw *ServerWorker) resultWithPrompt(programResult string) (string, string) 
 }
 
 func New() (*ServerWorker, error) {
-	return &ServerWorker{}, nil
+	return NewWithOptions(Options{})
+}
+
+func NewWithOptions(options Options) (*ServerWorker, error) {
+	if options.MaxDownloadBytes == 0 {
+		options.MaxDownloadBytes = defaultMaxDownloadBytes
+	}
+	if options.ProgressBytesStep == 0 {
+		options.ProgressBytesStep = 8 * 1024 * 1024
+	}
+	if options.TempDir == "" {
+		options.TempDir = "/tmp"
+	}
+	if options.ExecTempPattern == "" {
+		options.ExecTempPattern = "server-bot-exec-*"
+	}
+	if options.DownloadTempPattern == "" {
+		options.DownloadTempPattern = "server-bot-download-*"
+	}
+
+	return &ServerWorker{options: options}, nil
 }
 
 func (se *ServerWorker) execute(ctx context.Context, command string) (string, error) {
@@ -106,7 +247,7 @@ func (se *ServerWorker) executeScript(ctx context.Context, command string) (stri
 		return "", errors.New("no command provided")
 	}
 
-	tempDir, err := os.MkdirTemp("/tmp", "server-bot-exec-*")
+	tempDir, err := os.MkdirTemp(se.options.TempDir, se.options.ExecTempPattern)
 	if err != nil {
 		return "", err
 	}
@@ -179,6 +320,225 @@ func (se *ServerWorker) buildUploadedFileName(fileBaseName string, fileExtension
 func (se *ServerWorker) sanitizeScriptOutput(output string, scriptPath string) string {
 	sanitizedOutput := strings.ReplaceAll(output, scriptPath, "terminal input")
 	return strings.TrimRight(sanitizedOutput, "\r\n")
+}
+
+func (se *ServerWorker) resolveDownloadPath(name string) (string, error) {
+	trimmedName := strings.TrimSpace(name)
+	if trimmedName == "" {
+		return "", errors.New("empty file name")
+	}
+
+	if filepath.Base(trimmedName) != trimmedName || trimmedName == "." || trimmedName == ".." {
+		return "", errors.New("invalid file or directory name")
+	}
+
+	workingDir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	resolvedPath := filepath.Join(workingDir, trimmedName)
+	_, err = os.Stat(resolvedPath)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return "", errors.New("selected file or directory no longer exists")
+		}
+		return "", err
+	}
+
+	return resolvedPath, nil
+}
+
+func (se *ServerWorker) validateDownloadSize(path string, progress DownloadProgressFunc) (int64, int64, error) {
+	if se.options.MaxDownloadBytes <= 0 {
+		return 0, 0, nil
+	}
+
+	var totalSize int64
+	var files int64
+	emitDownloadProgress(progress, DownloadProgress{Stage: "size_check_started", Path: path})
+	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.IsDir() {
+			return nil
+		}
+
+		fileInfo, err := d.Info()
+		if err != nil {
+			return err
+		}
+
+		files++
+		totalSize += fileInfo.Size()
+		emitDownloadProgress(progress, DownloadProgress{Stage: "size_check_file", Path: path, Files: files, Bytes: fileInfo.Size(), TotalBytes: totalSize})
+		if totalSize > se.options.MaxDownloadBytes {
+			return fmt.Errorf("selected file or directory is too large for /get: %s exceeds limit %s", formatBytes(totalSize), formatBytes(se.options.MaxDownloadBytes))
+		}
+
+		return nil
+	})
+	if err != nil {
+		emitDownloadProgress(progress, DownloadProgress{Stage: "size_check_failed", Path: path, Files: files, TotalBytes: totalSize})
+		return totalSize, files, err
+	}
+
+	return totalSize, files, nil
+}
+
+func formatBytes(size int64) string {
+	const mib = 1024 * 1024
+	if size >= mib {
+		return fmt.Sprintf("%.1f MiB", float64(size)/mib)
+	}
+
+	return fmt.Sprintf("%d bytes", size)
+}
+
+func (se *ServerWorker) archiveDirectory(directoryPath string, directoryName string, totalBytes int64, progress DownloadProgressFunc) (string, func() error, error) {
+	tempDir, err := os.MkdirTemp(se.options.TempDir, se.options.DownloadTempPattern)
+	if err != nil {
+		return "", nil, err
+	}
+	cleanup := func() error {
+		return os.RemoveAll(tempDir)
+	}
+
+	archivePath := filepath.Join(tempDir, directoryName+".zip")
+	tempFile, err := os.OpenFile(archivePath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+	if err != nil {
+		_ = cleanup()
+		return "", nil, err
+	}
+
+	zipWriter := zip.NewWriter(tempFile)
+	emitDownloadProgress(progress, DownloadProgress{Stage: "archive_started", Name: directoryName, Path: archivePath, TotalBytes: totalBytes})
+
+	var archivedFiles int64
+	var archivedBytes int64
+	walkErr := filepath.WalkDir(directoryPath, func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+
+		relativePath, err := filepath.Rel(directoryPath, path)
+		if err != nil {
+			return err
+		}
+
+		archiveName := directoryName
+		if relativePath != "." {
+			archiveName = filepath.ToSlash(filepath.Join(directoryName, relativePath))
+		}
+
+		if d.IsDir() {
+			if relativePath == "." {
+				return nil
+			}
+
+			_, err := zipWriter.Create(archiveName + "/")
+			return err
+		}
+
+		fileInfo, err := d.Info()
+		if err != nil {
+			return err
+		}
+
+		header, err := zip.FileInfoHeader(fileInfo)
+		if err != nil {
+			return err
+		}
+		header.Name = archiveName
+		header.Method = zip.Deflate
+
+		writer, err := zipWriter.CreateHeader(header)
+		if err != nil {
+			return err
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		progressWriter := &downloadProgressWriter{
+			writer:       writer,
+			stage:        "archive_bytes",
+			name:         archiveName,
+			path:         path,
+			totalBytes:   totalBytes,
+			progress:     progress,
+			reportEvery:  se.options.ProgressBytesStep,
+			currentFiles: archivedFiles + 1,
+			baseBytes:    archivedBytes,
+		}
+		written, err := io.Copy(progressWriter, file)
+		archivedFiles++
+		archivedBytes += written
+		emitDownloadProgress(progress, DownloadProgress{Stage: "archive_file_done", Name: archiveName, Path: path, Files: archivedFiles, Bytes: archivedBytes, TotalBytes: totalBytes})
+		return err
+	})
+
+	closeErr := zipWriter.Close()
+	fileCloseErr := tempFile.Close()
+	if walkErr != nil {
+		_ = cleanup()
+		emitDownloadProgress(progress, DownloadProgress{Stage: "archive_failed", Name: directoryName, Path: archivePath, Files: archivedFiles, Bytes: archivedBytes, TotalBytes: totalBytes})
+		return "", nil, walkErr
+	}
+	if closeErr != nil {
+		_ = cleanup()
+		emitDownloadProgress(progress, DownloadProgress{Stage: "archive_failed", Name: directoryName, Path: archivePath, Files: archivedFiles, Bytes: archivedBytes, TotalBytes: totalBytes})
+		return "", nil, closeErr
+	}
+	if fileCloseErr != nil {
+		_ = cleanup()
+		emitDownloadProgress(progress, DownloadProgress{Stage: "archive_failed", Name: directoryName, Path: archivePath, Files: archivedFiles, Bytes: archivedBytes, TotalBytes: totalBytes})
+		return "", nil, fileCloseErr
+	}
+
+	emitDownloadProgress(progress, DownloadProgress{Stage: "archive_done", Name: directoryName, Path: archivePath, Files: archivedFiles, Bytes: archivedBytes, TotalBytes: totalBytes})
+	return archivePath, cleanup, nil
+}
+
+type downloadProgressWriter struct {
+	writer       io.Writer
+	stage        string
+	name         string
+	path         string
+	totalBytes   int64
+	progress     DownloadProgressFunc
+	reportEvery  int64
+	currentFiles int64
+	baseBytes    int64
+	written      int64
+	nextReport   int64
+}
+
+func (w *downloadProgressWriter) Write(p []byte) (int, error) {
+	n, err := w.writer.Write(p)
+	if n > 0 {
+		w.written += int64(n)
+		if w.nextReport == 0 {
+			w.nextReport = w.reportEvery
+		}
+		for w.written >= w.nextReport {
+			emitDownloadProgress(w.progress, DownloadProgress{
+				Stage:      w.stage,
+				Name:       w.name,
+				Path:       w.path,
+				Files:      w.currentFiles,
+				Bytes:      w.baseBytes + w.written,
+				TotalBytes: w.totalBytes,
+			})
+			w.nextReport += w.reportEvery
+		}
+	}
+
+	return n, err
 }
 
 func (se *ServerWorker) isChangeDirectoryCommand(command string) bool {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"github.com/stretchr/testify/assert"
 )
@@ -84,4 +85,12 @@ func TestFormatUploadedFileError(t *testing.T) {
 		"Failed to get file: some other error",
 		formatUploadedFileError(errors.New("some other error")),
 	)
+}
+
+func TestShouldRetryGetFileWithPublicAPI(t *testing.T) {
+	assert.False(t, shouldRetryGetFileWithPublicAPI(nil, nil))
+	assert.False(t, shouldRetryGetFileWithPublicAPI(errors.New("Bad Request: wrong file_id"), nil))
+	assert.False(t, shouldRetryGetFileWithPublicAPI(errors.New("some other error"), &bot.Bot{}))
+	assert.True(t, shouldRetryGetFileWithPublicAPI(errors.New("Bad Request: wrong file_id"), &bot.Bot{}))
+	assert.True(t, shouldRetryGetFileWithPublicAPI(errors.New("Bad Request: file is temporarily unavailable"), &bot.Bot{}))
 }

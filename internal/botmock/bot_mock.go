@@ -22,6 +22,10 @@ func (bm *botMock) SendMessage(ctx context.Context, params *bot.SendMessageParam
 	return bm.sendMessage(ctx, params)
 }
 
+func (bm *botMock) SendDocument(context.Context, *bot.SendDocumentParams) (*models.Message, error) {
+	return nil, nil
+}
+
 func New(sendMessage func(ctx context.Context, params *bot.SendMessageParams) (*models.Message, error)) *botMock {
 	bot := &botMock{
 		sendMessage: sendMessage,

@@ -3,7 +3,7 @@ package messagehandlers
 import (
 	"context"
 	"fmt"
-	"serverbot/internal/serverworker"
+	"servercommanderovertelegram/internal/serverworker"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -16,6 +16,10 @@ type Terminal struct {
 const INTERRUPT = "/c"
 
 func (t *Terminal) Handle(ctx context.Context, b ChatBot, update *models.Update, serverWorker *serverworker.ServerWorker) {
+	if update == nil || update.Message == nil {
+		return
+	}
+
 	if !t.beginCommand(ctx, b, update.Message.Chat.ID) {
 		return
 	}

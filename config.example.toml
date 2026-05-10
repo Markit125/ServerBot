@@ -1,0 +1,63 @@
+# ServerCommanderOverTelegram non-secret configuration.
+# Copy this file to config.toml and edit values for your server.
+
+[telegram]
+# Optional: local Telegram Bot API URL.
+# Leave empty unless you run telegram-bot-api in --local mode.
+# Recommended for large /get downloads because ServerCommanderOverTelegram can send prepared
+# files by file:// path instead of streaming them through the bot process.
+bot_api_url = ""
+
+[access]
+# Restrict bot usage to specific Telegram user IDs.
+# Strongly recommended for production because /terminal can run server commands.
+enabled = false
+deny_message = "Access denied"
+
+# Telegram usernames can change. Use them only as labels/comments.
+# To find your numeric Telegram user ID, send any message to the bot while
+# access is disabled and check logs, or use a trusted "user id" bot.
+#
+# [[access.allowed_users]]
+# id = 123456789
+# label = "main-admin"
+#
+# [[access.allowed_users]]
+# id = 987654321
+# label = "backup-admin"
+
+[get]
+# Max size allowed for /get downloads, in bytes. Default: 2 GiB.
+max_download_bytes = 2147483648
+
+# Timeout for sending the prepared file to Telegram.
+send_timeout = "45m"
+
+# How often ServerCommanderOverTelegram logs that an upload appears stalled.
+upload_stall_interval = "30s"
+
+# Minimum interval between Telegram progress message edits.
+progress_edit_interval = "5s"
+
+# Byte step for archive/upload progress events.
+progress_bytes_step = 8388608
+
+# Buffered progress event queue size.
+progress_queue_size = 128
+
+# Telegram message text limit guard for the accumulated progress message.
+progress_message_max_chars = 3900
+
+# Return to terminal mode after a successful /get.
+auto_terminal_after_success = true
+
+# Delete the progress message after a successful /get.
+delete_progress_on_success = true
+
+[paths]
+# Base directory for temporary execution and download files.
+temp_dir = "/tmp"
+
+# Patterns passed to os.MkdirTemp.
+exec_temp_pattern = "server-bot-exec-*"
+download_temp_pattern = "server-bot-download-*"

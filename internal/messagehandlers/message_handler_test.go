@@ -5,8 +5,8 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	botmock "serverbot/internal/botmock"
-	"serverbot/internal/serverworker"
+	botmock "servercommanderovertelegram/internal/botmock"
+	"servercommanderovertelegram/internal/serverworker"
 	"testing"
 	"time"
 
@@ -188,4 +188,43 @@ func TestTerminalDocumentHandler(t *testing.T) {
 	fileContent, err := os.ReadFile(filepath.Join(tempDir, "report.txt"))
 	require.NoError(t, err)
 	assert.Equal(t, "document-content", string(fileContent))
+}
+
+func TestGetResolveSelection(t *testing.T) {
+	handler := &Get{
+		entries: []serverworker.DownloadableEntry{
+			{Name: "alpha.txt"},
+			{Name: "beta", IsDir: true},
+		},
+	}
+
+	entry, err := handler.ResolveSelection("get:1")
+	require.NoError(t, err)
+	assert.Equal(t, serverworker.DownloadableEntry{Name: "beta", IsDir: true}, entry)
+}
+
+func TestGetResolveSelectionRejectsInvalidIndex(t *testing.T) {
+	handler := &Get{
+		entries: []serverworker.DownloadableEntry{
+			{Name: "alpha.txt"},
+		},
+	}
+
+	_, err := handler.ResolveSelection("get:5")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "out of date")
+}
+
+func TestTerminalHandleIgnoresNilMessage(t *testing.T) {
+	worker, err := serverworker.New()
+	require.NoError(t, err)
+
+	handler := &Terminal{}
+	bot := botmock.New(nil)
+
+	assert.NotPanics(t, func() {
+		handler.Handle(context.Background(), bot, &models.Update{}, worker)
+	})
+
+	assert.Empty(t, bot.SentMessages())
 }

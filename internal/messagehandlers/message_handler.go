@@ -3,7 +3,7 @@ package messagehandlers
 import (
 	"context"
 	"io"
-	"serverbot/internal/serverworker"
+	"servercommanderovertelegram/internal/serverworker"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
