@@ -189,5 +189,3 @@ echo - Echo mode
     
 
 `scripts/run-servercommanderovertelegram.sh` also shrinks `logs/servercommanderovertelegram.log` and prunes old `servercommanderovertelegram-run.*.log` files. Tune this with `LOG_MAX_BYTES`, `LOG_KEEP_BYTES`, `LOG_SHRINK_INTERVAL_SECONDS`, `RUN_LOG_MAX_AGE_DAYS`, and `RUN_LOG_MAX_FILES` in `.env`.
-
-_Note: For internal codebase details, please refer to `docs/architecture.md` and `docs/server-setup.md`._
