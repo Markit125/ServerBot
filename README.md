@@ -19,6 +19,18 @@ Current features:
 *   `/echo`: Simple echo mode.
     
 
+## Table of Contents
+
+*   [Requirements](#requirements)
+*   [Configuration](#configuration)
+*   [Access Control](#access-control)
+*   [First Run](#first-run)
+*   [Daily Deploy](#daily-deploy)
+*   [Useful Commands](#useful-commands)
+*   [`/get` Behavior](#get-behavior)
+*   [Telegram Command Menu](#telegram-command-menu)
+*   [Important Files](#important-files)
+
 ## Requirements
 
 *   Go installed on the server.
