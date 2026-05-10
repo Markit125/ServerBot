@@ -1,4 +1,4 @@
-# ServerCommanderOverTelegram
+# ServerCommanderOverTelegram (ServerBot)
 
 A Telegram bot that gives you secure remote access to your Linux server's terminal and file system right from your chat.
 
@@ -42,7 +42,7 @@ Current features:
 
 ## Configuration
 
-The bot uses an `.env` file for secrets and an optional `config.toml` for general settings. Environment variables still override TOML values, so existing `.env` deployments continue to work.
+The bot uses an `.env` file for secrets and an optional `config.toml` for general settings. Environment variables still override TOML values.
 
 Minimal `.env` (required):
 
@@ -96,14 +96,14 @@ From the project root:
 ```
 cp .env.example .env
 # edit BOT_TOKEN in .env
-./scripts/bootstrap-servercommanderovertelegram.sh
-systemctl enable --now servercommanderovertelegram.service
+./scripts/bootstrap-serverbot.sh
+systemctl enable --now serverbot.service
 ```
 
 To install and start immediately:
 
 ```
-./scripts/bootstrap-servercommanderovertelegram.sh --start
+./scripts/bootstrap-serverbot.sh --start
 ```
 
 ## Daily Deploy
@@ -112,22 +112,22 @@ After code changes:
 
 ```
 cd /path/to/ServerCommanderOverTelegram
-./scripts/redeploy-servercommanderovertelegram.sh
+./scripts/redeploy-serverbot.sh
 ```
 
-The redeploy script builds the binary, runs tests, restarts `servercommanderovertelegram.service`, and prints service status.
+The redeploy script builds the binary, runs tests, restarts `serverbot.service`, and prints service status.
 
-If `deploy/servercommanderovertelegram.service.template` changed:
+If `deploy/serverbot.service.template` changed:
 
 ```
 make install-service
-./scripts/redeploy-servercommanderovertelegram.sh --reload-units
+./scripts/redeploy-serverbot.sh --reload-units
 ```
 
 If local `telegram-bot-api` config or service changed:
 
 ```
-./scripts/redeploy-servercommanderovertelegram.sh --reload-units --restart-bot-api
+./scripts/redeploy-serverbot.sh --reload-units --restart-bot-api
 ```
 
 ## Useful Commands
@@ -135,9 +135,9 @@ If local `telegram-bot-api` config or service changed:
 ```
 make build    # Build the application
 make test     # Run the test suite
-make restart  # Restart the ServerCommanderOverTelegram service
+make restart  # Restart the serverbot service
 make status   # Show the systemd service status
-make logs     # Follow the ServerCommanderOverTelegram logs
+make logs     # Follow the serverbot logs
 make deploy   # Build, test, restart, and show status in one go
 ```
 
@@ -145,15 +145,15 @@ make deploy   # Build, test, restart, and show status in one go
 
 `/get` lists files and directories from the bot's current working directory. After the user selects an item:
 
-1.  ServerCommanderOverTelegram checks that the file or directory exists.
+1.  The bot checks that the file or directory exists.
     
-2.  ServerCommanderOverTelegram calculates size and file count.
+2.  The bot calculates size and file count.
     
-3.  Directories are archived into `/tmp/server-bot-download-*/Name.zip`.
+3.  Directories are archived into `/tmp/serverbot-download-*/Name.zip`.
     
 4.  A single Telegram progress message is created and then edited as stages change.
     
-5.  With local Bot API, ServerCommanderOverTelegram sends the prepared file as `file:///tmp/.../Name.zip`.
+5.  With local Bot API, the bot sends the prepared file as `file:///tmp/.../Name.zip`.
     
 6.  On success, Telegram shows the uploaded file and the progress message is deleted.
     
@@ -167,7 +167,7 @@ make deploy   # Build, test, restart, and show status in one go
 The main operational log contains `[GET]` lines for each stage:
 
 ```
-tail -f logs/servercommanderovertelegram.log
+tail -f logs/serverbot.log
 ```
 
 ## Telegram Command Menu
@@ -187,17 +187,17 @@ echo - Echo mode
     
 *   `.env.example`: secret/env template.
     
-*   `deploy/servercommanderovertelegram.service.template`: portable systemd unit template.
+*   `deploy/serverbot.service.template`: portable systemd unit template.
     
-*   `scripts/run-servercommanderovertelegram.sh`: supervised process wrapper.
+*   `scripts/run-serverbot.sh`: supervised process wrapper.
     
-*   `scripts/install-servercommanderovertelegram-service.sh`: generates and installs the systemd unit for the current clone path.
+*   `scripts/install-serverbot-service.sh`: generates and installs the systemd unit for the current clone path.
     
-*   `scripts/bootstrap-servercommanderovertelegram.sh`: first-run helper that creates local config files, builds, tests, and installs the service.
+*   `scripts/bootstrap-serverbot.sh`: first-run helper that creates local config files, builds, tests, and installs the service.
     
-*   `scripts/redeploy-servercommanderovertelegram.sh`: build/test/restart helper.
+*   `scripts/redeploy-serverbot.sh`: build/test/restart helper.
     
-*   `logs/servercommanderovertelegram.log`: local runtime log file, ignored by git.
+*   `logs/serverbot.log`: local runtime log file, ignored by git.
     
 
-`scripts/run-servercommanderovertelegram.sh` also shrinks `logs/servercommanderovertelegram.log` and prunes old `servercommanderovertelegram-run.*.log` files. Tune this with `LOG_MAX_BYTES`, `LOG_KEEP_BYTES`, `LOG_SHRINK_INTERVAL_SECONDS`, `RUN_LOG_MAX_AGE_DAYS`, and `RUN_LOG_MAX_FILES` in `.env`.
+`scripts/run-serverbot.sh` also shrinks `logs/serverbot.log` and prunes old `serverbot-run.*.log` files. Tune this with `LOG_MAX_BYTES`, `LOG_KEEP_BYTES`, `LOG_SHRINK_INTERVAL_SECONDS`, `RUN_LOG_MAX_AGE_DAYS`, and `RUN_LOG_MAX_FILES` in `.env`.

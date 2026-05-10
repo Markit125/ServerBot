@@ -1,4 +1,4 @@
-module servercommanderovertelegram
+module serverbot
 
 go 1.24
 

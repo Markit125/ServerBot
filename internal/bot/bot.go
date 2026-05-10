@@ -3,15 +3,15 @@ package bot
 import (
 	"context"
 	"net/http"
-	"servercommanderovertelegram/internal/config"
-	"servercommanderovertelegram/internal/messagehandlers"
-	"servercommanderovertelegram/internal/serverworker"
+	"serverbot/internal/config"
+	"serverbot/internal/messagehandlers"
+	"serverbot/internal/serverworker"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
 
-type ServerCommanderOverTelegram struct {
+type ServerBot struct {
 	serverWorker   *serverworker.ServerWorker
 	api            *bot.Bot
 	publicAPI      *bot.Bot
@@ -20,8 +20,8 @@ type ServerCommanderOverTelegram struct {
 	messageHandler messagehandlers.MessageHandler
 }
 
-func New(cfg *config.Config) (*ServerCommanderOverTelegram, error) {
-	sb := &ServerCommanderOverTelegram{
+func New(cfg *config.Config) (*ServerBot, error) {
+	sb := &ServerBot{
 		config:     cfg,
 		httpClient: http.DefaultClient,
 	}
@@ -67,7 +67,7 @@ func New(cfg *config.Config) (*ServerCommanderOverTelegram, error) {
 	return sb, err
 }
 
-func (sb *ServerCommanderOverTelegram) registerHandlers() {
+func (sb *ServerBot) registerHandlers() {
 	sb.api.RegisterHandler(bot.HandlerTypeMessageText, "/start", bot.MatchTypeExact, sb.startHandler)
 	sb.api.RegisterHandler(bot.HandlerTypeMessageText, "/echo", bot.MatchTypePrefix, sb.echoHandler)
 	sb.api.RegisterHandler(bot.HandlerTypeMessageText, "/terminal", bot.MatchTypeExact, sb.terminalHandler)
@@ -79,6 +79,6 @@ func (sb *ServerCommanderOverTelegram) registerHandlers() {
 	}, sb.documentHandler)
 }
 
-func (sb *ServerCommanderOverTelegram) Start(ctx context.Context) {
+func (sb *ServerBot) Start(ctx context.Context) {
 	sb.api.Start(ctx)
 }

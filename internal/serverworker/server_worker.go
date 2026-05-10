@@ -225,10 +225,10 @@ func NewWithOptions(options Options) (*ServerWorker, error) {
 		options.TempDir = "/tmp"
 	}
 	if options.ExecTempPattern == "" {
-		options.ExecTempPattern = "server-bot-exec-*"
+		options.ExecTempPattern = "serverbot-exec-*"
 	}
 	if options.DownloadTempPattern == "" {
-		options.DownloadTempPattern = "server-bot-download-*"
+		options.DownloadTempPattern = "serverbot-download-*"
 	}
 
 	return &ServerWorker{options: options}, nil

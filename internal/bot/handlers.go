@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"servercommanderovertelegram/internal/messagehandlers"
-	"servercommanderovertelegram/internal/serverworker"
+	"serverbot/internal/messagehandlers"
+	"serverbot/internal/serverworker"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -22,7 +22,7 @@ type uploadedFile struct {
 	Kind     string
 }
 
-func (sb *ServerCommanderOverTelegram) echoHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (sb *ServerBot) echoHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	sb.messageHandler = &messagehandlers.Echo{}
 	b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: update.Message.Chat.ID,
@@ -30,11 +30,11 @@ func (sb *ServerCommanderOverTelegram) echoHandler(ctx context.Context, b *bot.B
 	})
 }
 
-func (sb *ServerCommanderOverTelegram) terminalHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (sb *ServerBot) terminalHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	sb.enableTerminalMode(ctx, b, update)
 }
 
-func (sb *ServerCommanderOverTelegram) enableTerminalMode(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (sb *ServerBot) enableTerminalMode(ctx context.Context, b *bot.Bot, update *models.Update) {
 	chatID, ok := chatIDFromUpdate(update)
 	if !ok {
 		log.Printf("warning: cannot enable terminal mode: update has no chat")
@@ -66,12 +66,12 @@ func chatIDFromUpdate(update *models.Update) (any, bool) {
 	return nil, false
 }
 
-func (sb *ServerCommanderOverTelegram) getHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (sb *ServerBot) getHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	sb.messageHandler = &messagehandlers.Get{}
 	sb.messageHandler.Handle(ctx, b, update, sb.serverWorker)
 }
 
-func (sb *ServerCommanderOverTelegram) inputHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (sb *ServerBot) inputHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if update == nil || update.Message == nil {
 		return
 	}
@@ -79,7 +79,7 @@ func (sb *ServerCommanderOverTelegram) inputHandler(ctx context.Context, b *bot.
 	sb.messageHandler.Handle(ctx, b, update, sb.serverWorker)
 }
 
-func (sb *ServerCommanderOverTelegram) getSelectionHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (sb *ServerBot) getSelectionHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	getHandler, ok := sb.messageHandler.(*messagehandlers.Get)
 	if !ok {
 		_, _ = b.AnswerCallbackQuery(ctx, &bot.AnswerCallbackQueryParams{
@@ -110,7 +110,7 @@ func (sb *ServerCommanderOverTelegram) getSelectionHandler(ctx context.Context, 
 	go sb.downloadSelection(context.Background(), b, update, chatID, entry.Name)
 }
 
-func (sb *ServerCommanderOverTelegram) downloadSelection(ctx context.Context, b *bot.Bot, update *models.Update, chatID any, name string) {
+func (sb *ServerBot) downloadSelection(ctx context.Context, b *bot.Bot, update *models.Update, chatID any, name string) {
 	progressReporter := newGetProgressReporter(ctx, b, chatID, name, sb.config.ProgressQueueSize, sb.config.ProgressEditInterval, sb.config.ProgressMessageMaxChars)
 	defer progressReporter.Close()
 
@@ -221,7 +221,7 @@ func logUploadStalls(done <-chan struct{}, reporter *getProgressReporter, name s
 	}
 }
 
-func (sb *ServerCommanderOverTelegram) documentHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (sb *ServerBot) documentHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	uploadedFile := extractUploadedFile(update.Message)
 	if uploadedFile == nil {
 		b.SendMessage(ctx, &bot.SendMessageParams{
@@ -302,11 +302,11 @@ func (sb *ServerCommanderOverTelegram) documentHandler(ctx context.Context, b *b
 	})
 }
 
-func (sb *ServerCommanderOverTelegram) interruptHandler(ctx context.Context, _ *bot.Bot, _ *models.Update) {
+func (sb *ServerBot) interruptHandler(ctx context.Context, _ *bot.Bot, _ *models.Update) {
 
 }
 
-func (sb *ServerCommanderOverTelegram) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (sb *ServerBot) startHandler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	sb.messageHandler = &messagehandlers.Start{}
 	sb.messageHandler.Handle(ctx, b, update, sb.serverWorker)
 }

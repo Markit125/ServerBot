@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	servercommanderovertelegram "servercommanderovertelegram/internal/bot"
-	"servercommanderovertelegram/internal/config"
+	botapp "serverbot/internal/bot"
+	"serverbot/internal/config"
 	"syscall"
 )
 
@@ -28,7 +28,7 @@ func main() {
 		log.Fatalf("could not load config: %v", err)
 	}
 
-	sb, err := servercommanderovertelegram.New(cfg)
+	sb, err := botapp.New(cfg)
 	if err != nil {
 		log.Fatalf("could not create bot: %v", err)
 	}

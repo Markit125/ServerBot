@@ -91,9 +91,9 @@ bot_api_url = "http://localhost:8081"
 send_timeout = "10m"
 `), 0o600))
 	t.Setenv("BOT_TOKEN", "env_token")
-	t.Setenv("SERVERCOMMANDEROVERTELEGRAM_SEND_TIMEOUT", "20m")
-	t.Setenv("SERVERCOMMANDEROVERTELEGRAM_ACCESS_ENABLED", "true")
-	t.Setenv("SERVERCOMMANDEROVERTELEGRAM_ALLOWED_USER_IDS", "111,222")
+	t.Setenv("SERVERBOT_SEND_TIMEOUT", "20m")
+	t.Setenv("SERVERBOT_ACCESS_ENABLED", "true")
+	t.Setenv("SERVERBOT_ALLOWED_USER_IDS", "111,222")
 
 	cfg, err := New()
 

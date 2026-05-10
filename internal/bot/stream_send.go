@@ -18,7 +18,7 @@ type botAPIResponse struct {
 	ErrorCode   int             `json:"error_code,omitempty"`
 }
 
-func (sb *ServerCommanderOverTelegram) sendDocumentStreaming(ctx context.Context, chatID any, fileName string, content io.Reader) error {
+func (sb *ServerBot) sendDocumentStreaming(ctx context.Context, chatID any, fileName string, content io.Reader) error {
 	pipeReader, pipeWriter := io.Pipe()
 	form := multipart.NewWriter(pipeWriter)
 
@@ -93,7 +93,7 @@ func (sb *ServerCommanderOverTelegram) sendDocumentStreaming(ctx context.Context
 	return nil
 }
 
-func (sb *ServerCommanderOverTelegram) sendDocumentLocalPath(ctx context.Context, chatID any, fileName string, filePath string) error {
+func (sb *ServerBot) sendDocumentLocalPath(ctx context.Context, chatID any, fileName string, filePath string) error {
 	values := url.Values{}
 	values.Set("chat_id", fmt.Sprint(chatID))
 	values.Set("caption", fileName)
@@ -127,7 +127,7 @@ func (sb *ServerCommanderOverTelegram) sendDocumentLocalPath(ctx context.Context
 	return nil
 }
 
-func (sb *ServerCommanderOverTelegram) botAPIURL(method string) string {
+func (sb *ServerBot) botAPIURL(method string) string {
 	baseURL := strings.TrimRight(sb.config.BotAPIURL, "/")
 	if baseURL == "" {
 		baseURL = "https://api.telegram.org"

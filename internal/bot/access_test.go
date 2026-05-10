@@ -3,7 +3,7 @@ package bot
 import (
 	"testing"
 
-	"servercommanderovertelegram/internal/config"
+	"serverbot/internal/config"
 
 	"github.com/go-telegram/bot/models"
 	"github.com/stretchr/testify/assert"

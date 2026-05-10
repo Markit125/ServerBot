@@ -5,8 +5,8 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	botmock "servercommanderovertelegram/internal/botmock"
-	"servercommanderovertelegram/internal/serverworker"
+	botmock "serverbot/internal/botmock"
+	"serverbot/internal/serverworker"
 	"testing"
 	"time"
 

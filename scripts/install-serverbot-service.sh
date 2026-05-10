@@ -3,11 +3,11 @@
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-SERVICE_NAME="${SERVICE_NAME:-servercommanderovertelegram}"
+SERVICE_NAME="${SERVICE_NAME:-serverbot}"
 SERVICE_USER="${SERVICE_USER:-root}"
 ENV_FILE="${ENV_FILE:-${ROOT_DIR}/.env}"
 LOCAL_BOT_API_SERVICE="${LOCAL_BOT_API_SERVICE:-telegram-bot-api.service}"
-TEMPLATE_PATH="${ROOT_DIR}/deploy/servercommanderovertelegram.service.template"
+TEMPLATE_PATH="${ROOT_DIR}/deploy/serverbot.service.template"
 UNIT_PATH="${UNIT_PATH:-/etc/systemd/system/${SERVICE_NAME}.service}"
 
 if [[ ${EUID} -ne 0 ]]; then

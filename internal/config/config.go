@@ -22,8 +22,8 @@ const (
 	defaultProgressQueueSize      = 128
 	defaultProgressMessageMaxChar = 3900
 	defaultTempDir                = "/tmp"
-	defaultExecTempPattern        = "server-bot-exec-*"
-	defaultDownloadTempPattern    = "server-bot-download-*"
+	defaultExecTempPattern        = "serverbot-exec-*"
+	defaultDownloadTempPattern    = "serverbot-download-*"
 )
 
 type Config struct {
@@ -131,14 +131,14 @@ func defaultConfig() *Config {
 }
 
 func loadConfigFile(cfg *Config) error {
-	configPath := strings.TrimSpace(os.Getenv("SERVERCOMMANDEROVERTELEGRAM_CONFIG"))
+	configPath := strings.TrimSpace(os.Getenv("SERVERBOT_CONFIG"))
 	if configPath == "" {
 		configPath = defaultConfigPath
 	}
 
 	content, err := os.ReadFile(configPath)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) && os.Getenv("SERVERCOMMANDEROVERTELEGRAM_CONFIG") == "" {
+		if errors.Is(err, os.ErrNotExist) && os.Getenv("SERVERBOT_CONFIG") == "" {
 			return nil
 		}
 		return fmt.Errorf("read config file %q: %w", configPath, err)
@@ -236,13 +236,13 @@ func applyEnvOverrides(cfg *Config) error {
 	if value := os.Getenv("BOT_API_URL"); value != "" {
 		cfg.BotAPIURL = value
 	}
-	if err := applyBoolEnv("SERVERCOMMANDEROVERTELEGRAM_ACCESS_ENABLED", &cfg.AccessEnabled); err != nil {
+	if err := applyBoolEnv("SERVERBOT_ACCESS_ENABLED", &cfg.AccessEnabled); err != nil {
 		return err
 	}
-	if value := os.Getenv("SERVERCOMMANDEROVERTELEGRAM_ACCESS_DENY_MESSAGE"); value != "" {
+	if value := os.Getenv("SERVERBOT_ACCESS_DENY_MESSAGE"); value != "" {
 		cfg.AccessDenyMessage = value
 	}
-	if value := os.Getenv("SERVERCOMMANDEROVERTELEGRAM_ALLOWED_USER_IDS"); value != "" {
+	if value := os.Getenv("SERVERBOT_ALLOWED_USER_IDS"); value != "" {
 		allowedUsers, err := parseAllowedUserIDs(value)
 		if err != nil {
 			return err
@@ -250,41 +250,41 @@ func applyEnvOverrides(cfg *Config) error {
 		cfg.AllowedUsers = allowedUsers
 	}
 
-	if err := applyInt64Env("SERVERCOMMANDEROVERTELEGRAM_MAX_DOWNLOAD_BYTES", &cfg.MaxDownloadBytes); err != nil {
+	if err := applyInt64Env("SERVERBOT_MAX_DOWNLOAD_BYTES", &cfg.MaxDownloadBytes); err != nil {
 		return err
 	}
-	if err := applyDurationEnv("SERVERCOMMANDEROVERTELEGRAM_SEND_TIMEOUT", &cfg.SendTimeout); err != nil {
+	if err := applyDurationEnv("SERVERBOT_SEND_TIMEOUT", &cfg.SendTimeout); err != nil {
 		return err
 	}
-	if err := applyDurationEnv("SERVERCOMMANDEROVERTELEGRAM_UPLOAD_STALL_INTERVAL", &cfg.UploadStallInterval); err != nil {
+	if err := applyDurationEnv("SERVERBOT_UPLOAD_STALL_INTERVAL", &cfg.UploadStallInterval); err != nil {
 		return err
 	}
-	if err := applyDurationEnv("SERVERCOMMANDEROVERTELEGRAM_PROGRESS_EDIT_INTERVAL", &cfg.ProgressEditInterval); err != nil {
+	if err := applyDurationEnv("SERVERBOT_PROGRESS_EDIT_INTERVAL", &cfg.ProgressEditInterval); err != nil {
 		return err
 	}
-	if err := applyInt64Env("SERVERCOMMANDEROVERTELEGRAM_PROGRESS_BYTES_STEP", &cfg.ProgressBytesStep); err != nil {
+	if err := applyInt64Env("SERVERBOT_PROGRESS_BYTES_STEP", &cfg.ProgressBytesStep); err != nil {
 		return err
 	}
-	if err := applyIntEnv("SERVERCOMMANDEROVERTELEGRAM_PROGRESS_QUEUE_SIZE", &cfg.ProgressQueueSize); err != nil {
+	if err := applyIntEnv("SERVERBOT_PROGRESS_QUEUE_SIZE", &cfg.ProgressQueueSize); err != nil {
 		return err
 	}
-	if err := applyIntEnv("SERVERCOMMANDEROVERTELEGRAM_PROGRESS_MESSAGE_MAX_CHARS", &cfg.ProgressMessageMaxChars); err != nil {
+	if err := applyIntEnv("SERVERBOT_PROGRESS_MESSAGE_MAX_CHARS", &cfg.ProgressMessageMaxChars); err != nil {
 		return err
 	}
-	if err := applyBoolEnv("SERVERCOMMANDEROVERTELEGRAM_AUTO_TERMINAL_AFTER_GET", &cfg.AutoTerminalAfterGet); err != nil {
+	if err := applyBoolEnv("SERVERBOT_AUTO_TERMINAL_AFTER_GET", &cfg.AutoTerminalAfterGet); err != nil {
 		return err
 	}
-	if err := applyBoolEnv("SERVERCOMMANDEROVERTELEGRAM_DELETE_PROGRESS_ON_SUCCESS", &cfg.DeleteProgressOnSuccess); err != nil {
+	if err := applyBoolEnv("SERVERBOT_DELETE_PROGRESS_ON_SUCCESS", &cfg.DeleteProgressOnSuccess); err != nil {
 		return err
 	}
 
-	if value := os.Getenv("SERVERCOMMANDEROVERTELEGRAM_TEMP_DIR"); value != "" {
+	if value := os.Getenv("SERVERBOT_TEMP_DIR"); value != "" {
 		cfg.TempDir = value
 	}
-	if value := os.Getenv("SERVERCOMMANDEROVERTELEGRAM_EXEC_TEMP_PATTERN"); value != "" {
+	if value := os.Getenv("SERVERBOT_EXEC_TEMP_PATTERN"); value != "" {
 		cfg.ExecTempPattern = value
 	}
-	if value := os.Getenv("SERVERCOMMANDEROVERTELEGRAM_DOWNLOAD_TEMP_PATTERN"); value != "" {
+	if value := os.Getenv("SERVERBOT_DOWNLOAD_TEMP_PATTERN"); value != "" {
 		cfg.DownloadTempPattern = value
 	}
 
@@ -315,7 +315,7 @@ func parseAllowedUserIDs(value string) ([]AllowedUser, error) {
 
 		id, err := strconv.ParseInt(trimmed, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("invalid SERVERCOMMANDEROVERTELEGRAM_ALLOWED_USER_IDS value %q: %w", trimmed, err)
+			return nil, fmt.Errorf("invalid SERVERBOT_ALLOWED_USER_IDS value %q: %w", trimmed, err)
 		}
 		users = append(users, AllowedUser{ID: id})
 	}

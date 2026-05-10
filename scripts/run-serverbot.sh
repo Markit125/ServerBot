@@ -3,9 +3,9 @@
 set -uo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BIN_PATH="${ROOT_DIR}/bin/servercommanderovertelegram"
+BIN_PATH="${ROOT_DIR}/bin/serverbot"
 LOG_DIR="${ROOT_DIR}/logs"
-LOG_FILE="${LOG_DIR}/servercommanderovertelegram.log"
+LOG_FILE="${LOG_DIR}/serverbot.log"
 RESTART_DELAY_SECONDS="${RESTART_DELAY_SECONDS:-5}"
 RUN_LOG_TAIL_LINES="${RUN_LOG_TAIL_LINES:-20}"
 LOG_MAX_BYTES="${LOG_MAX_BYTES:-52428800}"
@@ -50,7 +50,7 @@ shrink_log_file() {
     fi
 
     local tmp_file
-    tmp_file="$(mktemp "${LOG_DIR}/servercommanderovertelegram-log-shrink.XXXXXX")"
+    tmp_file="$(mktemp "${LOG_DIR}/serverbot-log-shrink.XXXXXX")"
     if tail -c "${keep_bytes}" "${file_path}" > "${tmp_file}"; then
         : > "${file_path}"
         cat "${tmp_file}" > "${file_path}"
@@ -61,7 +61,7 @@ shrink_log_file() {
 
 prune_run_logs() {
     if is_non_negative_integer "${RUN_LOG_MAX_AGE_DAYS}" && [[ ${RUN_LOG_MAX_AGE_DAYS} -gt 0 ]]; then
-        find "${LOG_DIR}" -maxdepth 1 -type f -name 'servercommanderovertelegram-run.*.log' -mtime "+${RUN_LOG_MAX_AGE_DAYS}" -delete 2>/dev/null || true
+        find "${LOG_DIR}" -maxdepth 1 -type f -name 'serverbot-run.*.log' -mtime "+${RUN_LOG_MAX_AGE_DAYS}" -delete 2>/dev/null || true
     fi
 
     if ! is_non_negative_integer "${RUN_LOG_MAX_FILES}" || [[ ${RUN_LOG_MAX_FILES} -eq 0 ]]; then
@@ -69,7 +69,7 @@ prune_run_logs() {
     fi
 
     mapfile -t logs_to_remove < <(
-        find "${LOG_DIR}" -maxdepth 1 -type f -name 'servercommanderovertelegram-run.*.log' -printf '%T@ %p\n' 2>/dev/null \
+        find "${LOG_DIR}" -maxdepth 1 -type f -name 'serverbot-run.*.log' -printf '%T@ %p\n' 2>/dev/null \
             | sort -nr \
             | tail -n +"$((RUN_LOG_MAX_FILES + 1))" \
             | cut -d ' ' -f 2-
@@ -149,7 +149,7 @@ trap 'kill "${maintenance_pid}" 2>/dev/null || true' EXIT
 
 while true; do
     maintain_logs
-    run_log_file="$(mktemp "${LOG_DIR}/servercommanderovertelegram-run.XXXXXX.log")"
+    run_log_file="$(mktemp "${LOG_DIR}/serverbot-run.XXXXXX.log")"
     log_line "starting bot process"
     "${BIN_PATH}" 2>&1 | tee -a "${LOG_FILE}" "${run_log_file}"
     exit_code=${PIPESTATUS[0]}

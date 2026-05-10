@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT_DIR="${ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-SERVICE_NAME="${SERVICE_NAME:-servercommanderovertelegram}"
+SERVICE_NAME="${SERVICE_NAME:-serverbot}"
 ENV_FILE="${ENV_FILE:-${ROOT_DIR}/.env}"
 CONFIG_FILE="${CONFIG_FILE:-${ROOT_DIR}/config.toml}"
 RUN_TESTS=1
@@ -15,7 +15,7 @@ usage() {
     cat <<EOF
 Usage: $0 [options]
 
-Prepare ServerCommanderOverTelegram for first run on this machine.
+Prepare serverbot for first run on this machine.
 
 Options:
   --start          Enable and start the systemd service after install.
@@ -26,7 +26,7 @@ Options:
 
 Environment overrides:
   ROOT_DIR                 Project root. Default: auto-detected.
-  SERVICE_NAME             systemd service name. Default: servercommanderovertelegram.
+  SERVICE_NAME             systemd service name. Default: serverbot.
   SERVICE_USER             systemd service user. Default: root.
   ENV_FILE                 .env path. Default: \$ROOT_DIR/.env.
   CONFIG_FILE              config.toml path. Default: \$ROOT_DIR/config.toml.
@@ -123,10 +123,10 @@ warn_if_token_placeholder
 
 log "ensuring scripts are executable"
 chmod +x \
-    "${ROOT_DIR}/scripts/run-servercommanderovertelegram.sh" \
-    "${ROOT_DIR}/scripts/redeploy-servercommanderovertelegram.sh" \
-    "${ROOT_DIR}/scripts/install-servercommanderovertelegram-service.sh" \
-    "${ROOT_DIR}/scripts/bootstrap-servercommanderovertelegram.sh"
+    "${ROOT_DIR}/scripts/run-serverbot.sh" \
+    "${ROOT_DIR}/scripts/redeploy-serverbot.sh" \
+    "${ROOT_DIR}/scripts/install-serverbot-service.sh" \
+    "${ROOT_DIR}/scripts/bootstrap-serverbot.sh"
 
 log "building binary"
 make build
@@ -137,7 +137,7 @@ if [[ ${RUN_TESTS} -eq 1 ]]; then
 fi
 
 log "installing systemd service"
-"${ROOT_DIR}/scripts/install-servercommanderovertelegram-service.sh"
+"${ROOT_DIR}/scripts/install-serverbot-service.sh"
 
 if [[ ${START_SERVICE} -eq 1 ]]; then
     if [[ ${ENABLE_SERVICE} -eq 1 ]]; then

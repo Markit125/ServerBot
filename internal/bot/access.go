@@ -3,7 +3,7 @@ package bot
 import (
 	"context"
 	"log"
-	"servercommanderovertelegram/internal/config"
+	"serverbot/internal/config"
 
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -16,7 +16,7 @@ type telegramUser struct {
 	LastName  string
 }
 
-func (sb *ServerCommanderOverTelegram) accessMiddleware(next bot.HandlerFunc) bot.HandlerFunc {
+func (sb *ServerBot) accessMiddleware(next bot.HandlerFunc) bot.HandlerFunc {
 	allowedUsers := buildAllowedUsersSet(sb.config.AllowedUsers)
 
 	return func(ctx context.Context, b *bot.Bot, update *models.Update) {

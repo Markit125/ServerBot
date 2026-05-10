@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"servercommanderovertelegram/internal/serverworker"
+	"serverbot/internal/serverworker"
 	"strings"
 	"sync/atomic"
 	"time"

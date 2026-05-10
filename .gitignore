@@ -30,4 +30,4 @@ bin/
 logs/
 
 # systemd service file
-deploy/servercommanderovertelegram.service
+deploy/serverbot.service
